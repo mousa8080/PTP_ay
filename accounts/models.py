@@ -9,7 +9,7 @@ class User(AbstractUser):
     full_name = models.CharField(max_length=255, blank=True)
     email = models.EmailField(unique=True)
     national_id = models.CharField(max_length=14, unique=True)
-    phone = models.CharField(max_length=15, unique=True)
+    phone = models.CharField(max_length=15, unique=False)
     is_driver = models.BooleanField(default=False)
     driver_photo = models.ImageField(upload_to='driver_photos/', null=True, blank=True)  # لازم يكون موجود  
     license_photo = models.ImageField(upload_to='license_photos/', null=True, blank=True)
