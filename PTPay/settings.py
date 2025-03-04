@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from datetime import timedelta
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -42,6 +43,9 @@ INSTALLED_APPS = [
     'rest_framework',
     'transportion',
     'accounts',
+    'core',
+    
+
 
 ]
 
@@ -156,3 +160,6 @@ SIMPLE_JWT = {
 'AUTH_HEADER_TYPES': ('Bearer',),
 'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
 }
+
+
+

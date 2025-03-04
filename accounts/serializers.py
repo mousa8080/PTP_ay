@@ -1,72 +1,67 @@
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from .models import DriverInfo
 from rest_framework import serializers
-from rest_framework.validators import UniqueValidator
-from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth import get_user_model
 
-User= get_user_model()
-Driver= get_user_model()
+User = get_user_model()
 
-
-
-class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
-
-    @classmethod
-    def get_token(cls, user):
-        token = super(MyTokenObtainPairSerializer, cls).get_token(user)
-
-        # Add custom claims
-        token['username'] = user.username
-        return token
-    
-
-
-
-
-
-
-
-class RegisterSerializer(serializers.ModelSerializer):
-    email = serializers.EmailField(
-            required=True,
-            validators=[UniqueValidator(queryset=User.objects.all())]
-            )
-
-    password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
-    password2 = serializers.CharField(write_only=True, required=True)
+class RegisterUserSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True)
+    password2 = serializers.CharField(write_only=True)
 
     class Meta:
         model = User
-        fields = ('username', 'password', 'password2', 'email', 'first_name', 'last_name','national_id','is_driver','phone')
-        extra_kwargs = {
-            'first_name': {'required': True},
-            'last_name': {'required': True},
-            'national_id':{'required':True},
-            'phone':{'required':True}
-        }
+        fields = [
+            'email',
+            'full_name',
+            'phone',
+            'national_id',
+            'password',
+            'password2',
+        ]
 
     def validate(self, attrs):
         if attrs['password'] != attrs['password2']:
-            raise serializers.ValidationError({"password": "Password fields didn't match."})
-
+            raise serializers.ValidationError("كلمتا المرور غير متطابقتين.")
         return attrs
 
     def create(self, validated_data):
-        user = User.objects.create(
-            username=validated_data['username'],
-            email=validated_data['email'],
-            first_name=validated_data['first_name'],
-            last_name=validated_data['last_name'],
-            national_id=validated_data['national_id'],
-            phone=validated_data['phone'],
-        )
+        password = validated_data.pop('password')
+        validated_data.pop('password2')
 
-        
-        user.set_password(validated_data['password'])
+        user = User(**validated_data)
+        user.set_password(password)
         user.save()
-
         return user
 
-    class Meta:
-        model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'password', 'password2','national_id','is_driver','phone']
+
+
+class RegisterDriverSerializer(RegisterUserSerializer):
+    driver_photo = serializers.ImageField(required=True)
+    license_photo = serializers.ImageField(required=True)
+    license_number = serializers.CharField(required=True)
+
+
+    class Meta(RegisterUserSerializer.Meta):
+        fields = RegisterUserSerializer.Meta.fields + [
+            'driver_photo',
+            'license_photo',
+            'license_number',
+        ]
+
+    def create(self, validated_data):
+        driver_photo = validated_data.pop('driver_photo', None)
+        license_photo = validated_data.pop('license_photo', None)
+        license_number = validated_data.pop('license_number', None)
+
+        validated_data['is_driver'] = True
+
+        user = super().create(validated_data)
+
+        DriverInfo.objects.create(
+            user=user,
+            driver_photo=driver_photo,
+            license_photo=license_photo,
+            license_number=license_number
+        )
+
+        return user
