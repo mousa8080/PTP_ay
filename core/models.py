@@ -10,6 +10,7 @@ class User(models.Model):
 
 class Payment(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+    uid = models.CharField(max_length=50)
     fare = models.DecimalField(max_digits=10, decimal_places=2, default=5.00)
     new_balance = models.DecimalField(max_digits=10, decimal_places=2)
     date = models.DateField(auto_now_add=True)

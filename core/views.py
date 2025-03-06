@@ -8,31 +8,42 @@ class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
+from decimal import Decimal
+from django.db import transaction
+from django.shortcuts import get_object_or_404
+from rest_framework import viewsets, status
+from rest_framework.response import Response
+
 class PaymentViewSet(viewsets.ModelViewSet):
     queryset = Payment.objects.all()
     serializer_class = PaymentSerializer
 
     def create(self, request, *args, **kwargs):
-        uid = request.data.get('uid', '').strip()
+        uid = request.data.get('uid')
 
-        if not uid:
+        #✅ التحقق من أن uid تم إرساله وليس None
+        if not uid or not isinstance(uid, str) or uid.strip() == "":
             return Response({'message': 'Missing_UID'}, status=status.HTTP_400_BAD_REQUEST)
 
-        try:
-            user = User.objects.get(uid=uid)
-        except User.DoesNotExist:
-            return Response({'message': 'Not_Registered'}, status=status.HTTP_404_NOT_FOUND)
+        # ✅ جلب المستخدم أو إرجاع رسالة خطأ إذا لم يكن مسجلاً
+        user = get_object_or_404(User, uid=uid.strip())
 
-        fare = Decimal('5.00')  # ✅ تحويل إلى Decimal
+        fare = Decimal('5.00')
 
+        # ✅ التحقق من وجود رصيد كافٍ
         if user.balance < fare:
             return Response({'message': 'Insufficient_Balance'}, status=status.HTTP_400_BAD_REQUEST)
 
-        user.balance -= fare  # ✅ لن يسبب خطأ الآن
-        user.save()
+        # ✅ استخدام المعاملات لضمان تنفيذ التعديلات بدون أخطاء
+        with transaction.atomic():
+            user.balance -= fare
+            user.save()
 
-        payment = Payment.objects.create(user=user, fare=fare, new_balance=user.balance)
+            payment = Payment.objects.create(user=user, fare=fare, new_balance=user.balance)
+
         return Response(PaymentSerializer(payment).data, status=status.HTTP_201_CREATED)
+
+
 class DepositViewSet(viewsets.ModelViewSet):  # ✅ ModelViewSet لعمليات الإيداع
     queryset = Deposit.objects.all()
     serializer_class = DepositSerializer
