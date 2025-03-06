@@ -1,3 +1,4 @@
+from decimal import Decimal
 from rest_framework import viewsets
 from rest_framework.response import Response
 from rest_framework import status
@@ -7,12 +8,12 @@ class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
-class PaymentViewSet(viewsets.ModelViewSet):  # ✅ ModelViewSet لعمليات الدفع
+class PaymentViewSet(viewsets.ModelViewSet):
     queryset = Payment.objects.all()
     serializer_class = PaymentSerializer
 
     def create(self, request, *args, **kwargs):
-        uid = request.data.get('uid')
+        uid = request.data.get('uid', '').strip()
 
         if not uid:
             return Response({'message': 'Missing_UID'}, status=status.HTTP_400_BAD_REQUEST)
@@ -22,21 +23,16 @@ class PaymentViewSet(viewsets.ModelViewSet):  # ✅ ModelViewSet لعمليات 
         except User.DoesNotExist:
             return Response({'message': 'Not_Registered'}, status=status.HTTP_404_NOT_FOUND)
 
-        fare = 5.00
+        fare = Decimal('5.00')  # ✅ تحويل إلى Decimal
+
         if user.balance < fare:
             return Response({'message': 'Insufficient_Balance'}, status=status.HTTP_400_BAD_REQUEST)
 
-        new_balance = user.balance - fare
-        user.balance = new_balance
+        user.balance -= fare  # ✅ لن يسبب خطأ الآن
         user.save()
 
-        payment = Payment.objects.create(user=user, fare=fare, new_balance=new_balance)
+        payment = Payment.objects.create(user=user, fare=fare, new_balance=user.balance)
         return Response(PaymentSerializer(payment).data, status=status.HTTP_201_CREATED)
-
-    def destroy(self, request, *args, **kwargs):
-        Payment.objects.all().delete()
-        return Response({'message': 'All payments cleared'}, status=status.HTTP_200_OK)
-
 class DepositViewSet(viewsets.ModelViewSet):  # ✅ ModelViewSet لعمليات الإيداع
     queryset = Deposit.objects.all()
     serializer_class = DepositSerializer
