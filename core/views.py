@@ -42,6 +42,7 @@ class PaymentViewSet(viewsets.ModelViewSet):
             payment = Payment.objects.create(user=user, fare=fare, new_balance=user.balance)
 
         return Response(PaymentSerializer(payment).data, status=status.HTTP_201_CREATED)
+    
 
 
 class DepositViewSet(viewsets.ModelViewSet):  # ✅ ModelViewSet لعمليات الإيداع

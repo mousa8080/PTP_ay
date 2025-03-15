@@ -56,3 +56,4 @@ pip3 freeze > requirements.txt
 py manage.py migrate
 http://127.0.0.1:8000/API/BranchesList?format=json
 rm -rif PTP_ayy
+pip install -r requirements.txt
